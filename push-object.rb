@@ -23,6 +23,8 @@ def push_object(sha, remote)
   header = type + ' ' + content.bytesize.to_s + "\0"
   store = header + content
 
+  STDERR.puts "\033[32mPUSHING #{sha} [#{type}]\033[0m"
+
   FileUtils.mkdir_p(remote + '/obj/')
   File.open(remote + '/obj/' + sha, 'wb') do |file|
     file.write(store)
