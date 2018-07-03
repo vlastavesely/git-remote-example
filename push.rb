@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 
 require './push-object.rb'
+require './ref.rb'
 
 # Pushes all new objects into a branch.
 #
@@ -9,17 +10,26 @@ require './push-object.rb'
 # a remote repository. If no previous push has been done, this
 # function will push all the objects in the repository.
 #
-def push(old_head, new_head, remote)
+def push(remote_head, local_head, remote)
 
-  if old_head != nil
-    ref = old_head + '..' + new_head
+  remote_sha = get_ref_remote(remote_head, remote)
+  local_sha = get_ref_local(local_head)
+
+  if remote_sha != nil
+    ref = remote_sha + '..' + local_sha
   else
-    ref = new_head
+    ref = local_sha
   end
 
   objects = `git rev-list --objects #{ref}`
-  objects.split("\n").each do |object|
+  objects = objects.split("\n")
+  count = objects.count
+
+  STDERR.puts "\033[33mPUSHING #{ref} (#{count} objects)\033[0m"
+  objects.each do |object|
     push_object(object[0,40], remote)
   end
+
+  set_ref_remote(remote_head, local_sha, remote)
 
 end
