@@ -27,6 +27,7 @@ def push_object(sha, remote)
 
   FileUtils.mkdir_p(remote + '/obj/')
   File.open(remote + '/obj/' + sha, 'wb') do |file|
+    store = Zlib::Deflate.deflate(store)
     file.write(store)
   end
 
