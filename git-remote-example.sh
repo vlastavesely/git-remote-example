@@ -69,6 +69,8 @@ push_object()
 	type=$(git cat-file -t $1) # = (commit | tree | blob)
 	header="$type $(git cat-file $type $1 | wc -c)"
 
+	test -f "$dest" && return 0
+
 	echo "\033[32m * PUSHING $1 [$type]\033[0m" >&2
 
 	{ printf "$header\000"; git cat-file $type $1; } | deflate >"$dest"
@@ -84,6 +86,8 @@ push()
 
 	test -n "$remote_sha" && ref="$remote_sha..$local_sha" || ref="$local_sha"
 
+	echo "\e[35mLISTING: git rev-list --objects $ref\e[0m" >&2
+
 	git rev-list --objects $ref | while read object
 	do
 		object=$(echo "$object" | head -c 40)
@@ -95,14 +99,22 @@ push()
 	return 0 # FIXME
 }
 
+object_exists()
+{
+	git cat-file -p $1 >/dev/null 2>/dev/null
+}
+
 list_objects()
 {
 	remote="$1"
 	sha="$2"
 
+
 	local content type
 	content=$(cat $remote/obj/$sha | inflate)
 	type=$(echo "$content" | head -c 4)
+
+	object_exists "$sha" && return 0
 
 	case "$type" in
 	comm)
@@ -124,7 +136,10 @@ list_objects()
 		do
 			name=$(echo "$tree" | sed -e 's/00/ /' | cut -d' ' -f1)
 			tree=$(echo $tree | tail -c+$(expr $(echo $name | wc -c) + 2))
-			echo $tree | head -c 40; echo
+
+			sha=$(echo $tree | head -c 40)
+			object_exists "$sha" || echo "$sha"
+
 			tree=$(echo "$tree" | tail -c+42)
 		done
 		;;
@@ -154,11 +169,13 @@ resolve_tags()
 
 fetch_object()
 {
-	echo "\033[32m * FETCHING $2\033[0m" >&2
 	dest="$GIT_DIR/objects/$(echo $2 | head -c 2)/$(echo $2 | tail -c+3)"
 
 	type=$(cat "$1/obj/$2" | inflate | head -c 4)
 	test "$type" = "comm" && type=commit
+	test "$type" = "tag " && type=tag
+
+	echo "\033[32m * FETCHING $2 [$type]\033[0m" >&2
 
 	mkdir -p $(dirname "$dest")
 	cp "$1/obj/$2" "$dest"
