@@ -50,6 +50,11 @@ list()
 		cat "$1/refs/heads/$branch" | head -c 40
 		echo " refs/heads/$branch"
 	done
+	test -d $1/refs/tags && for branch in $(ls $1/refs/tags)
+	do
+		cat "$1/refs/tags/$branch" | head -c 40
+		echo " refs/tags/$branch"
+	done
 	echo "@refs/heads/master HEAD"
 	echo
 }
@@ -132,6 +137,21 @@ list_objects()
 	esac
 }
 
+resolve_tags()
+{
+	objects="$2"
+
+	for tag in $1/refs/tags/*
+	do
+		match=$(cat $1/obj/$(cat $tag) | inflate | grep --binary-files=text -E 'object [a-f0-9]{40}' | cat)
+		sha=$(echo $match | tail -c 41)
+		echo "$objects" | while read object
+		do
+			test "x$object" = "x$sha" && { cat $tag; break; }
+		done
+	done
+}
+
 fetch_object()
 {
 	echo "\033[32m * FETCHING $2\033[0m" >&2
@@ -147,6 +167,7 @@ fetch_object()
 fetch()
 {
 	objects=$(list_objects "$1" "$2" | sort | uniq)
+	objects="$objects $(resolve_tags "$1" "$objects")"
 
 	for object in $objects
 	do
@@ -160,6 +181,8 @@ remote=$(echo "$url" | tail -c+11)
 
 while read cmd
 do
+	test -n "$cmd" && echo "\033[31mRunning '$cmd'...\033[0m" >&2
+
 	case "$cmd" in
 	capabilities)
 		echo push
