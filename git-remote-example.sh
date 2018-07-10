@@ -1,5 +1,11 @@
 #!/bin/sh
 
+# ==============================================================================
+# REF ACCESSORS HELPERS
+# ==============================================================================
+
+# Gets a SHA1 value of a remote ref.
+#
 # Argument 1: name of the ref (e.g. 'refs/heads/master')
 # Argument 2: path to the remote repository
 get_ref_remote()
@@ -7,6 +13,8 @@ get_ref_remote()
 	test -f "$1/$2" && cat "$1/$2"
 }
 
+# Sets a SHA1 value into a remote ref.
+#
 # Argument 1: name of the ref (e.g. 'refs/heads/master')
 # Argument 2: path to the remote repository
 # Argument 3: sha value
@@ -16,48 +24,67 @@ set_ref_remote()
 	echo -n "$3" > "$2/$1"
 }
 
+# Gets a SHA1 value of a local ref.
+#
 # Argument 1: name of the ref (e.g. 'refs/heads/master')
 get_ref_local()
 {
 	test -f ".git/$1" && cat ".git/$1"
 }
 
+
+# ==============================================================================
+# COMPRESSION HELPERS
+# ==============================================================================
+
+# Compresses a raw git object.
+#
+# This function reads from standard input
 deflate()
 {
 	zlib-flate -compress
 }
 
+# Uncompresses a compressed git object data.
+#
+# This function reads from standard input
 inflate()
 {
 	zlib-flate -uncompress
 }
 
 
-# Lists the heads of remote branches.
+# ==============================================================================
+# LIST COMMAND
+# ==============================================================================
+
+# Lists the heads of remote branches (and tags).
 #
 # Expected output:
 # ------------------------------------------------------------------------------
 # b88f36d7a73ccf94174eb2efab86402fa425cd64 refs/heads/master
 # 7f65b4065ecd25aea34f374ec82bb4db279998d6 refs/heads/bracn
+# @refs/heads/master HEAD
 # <newline>
 # ------------------------------------------------------------------------------
 #
 # Argument 1: path to the remote repository
 list()
 {
-	test -d $1/refs/heads && for branch in $(ls $1/refs/heads)
+	find $1/refs/heads $1/refs/tags -type f 2>/dev/null | while read ref
 	do
-		cat "$1/refs/heads/$branch" | head -c 40
-		echo " refs/heads/$branch"
+		cat $ref | head -c 40; echo -n " "
+		echo "$ref" | tail -c+$(echo "$1 " | wc -c)
 	done
-	test -d $1/refs/tags && for branch in $(ls $1/refs/tags)
-	do
-		cat "$1/refs/tags/$branch" | head -c 40
-		echo " refs/tags/$branch"
-	done
+
 	test -f "$1/refs/heads/master" && echo "@refs/heads/master HEAD"
 	echo
 }
+
+
+# ==============================================================================
+# PUSH COMMAND
+# ==============================================================================
 
 # Argument 1: the object's sha hash
 # Argument 2: path to the remote repository
@@ -202,15 +229,15 @@ echo "\033[34mStarted helper for '$url'...\033[0m" >&2
 
 while read cmd
 do
-	test -n "$cmd" && echo "\033[34mRunning '$cmd'...\033[0m" >&2
-
 	case "$cmd" in
 	capabilities)
+		test -n "$cmd" && echo "\033[34mRunning '$cmd'...\033[0m" >&2
 		echo push
 		echo fetch
 		echo
 		;;
 	list|list\ for-push)
+		test -n "$cmd" && echo "\033[34mRunning '$cmd'...\033[0m" >&2
 		list "$remote"
 
 		# Debug
@@ -224,6 +251,7 @@ do
 	push\ *)
 		while true
 		do
+			test -n "$cmd" && echo "\033[34mRunning '$cmd'...\033[0m" >&2
 			arg=$(echo $cmd | tail -c +5)
 			src=$(echo "$arg" | cut -d':' -f1 | xargs)
 			dst=$(echo "$arg" | cut -d':' -f2 | xargs)
@@ -237,6 +265,7 @@ do
 	fetch\ *)
 		while true
 		do
+			test -n "$cmd" && echo "\033[34mRunning '$cmd'...\033[0m" >&2
 			arg="$(echo $cmd | tail -c +7)"
 			fetch "$remote" $arg
 
