@@ -1,0 +1,27 @@
+Example Git Remote Helper
+=========================
+This is an example `Git remote helper` implementing the `push` and `fetch`
+capabilities.
+
+As a basic introduction to the idea of Git remote helpers, the official
+documentation [https://git-scm.com/docs/git-remote-helpers] can be useful.
+However, in order to program a working helper, one must have a deeper
+understanding of Git's internals since the documentation omits many details.
+Actual implementations of remote helpers, that can be found over the
+Internet, are often built for various cloud services so gaining a basic
+idea how to implement a new helper is kind of difficult.
+
+This script is a result of my own painful studying the subject. It implements
+a "remote" storage in another directory on the local file system. For purpose
+of study, it simply transfers all the objects file by file. However, this
+approach would be an overkill when transferring data over the Internet.
+In such cases, implementing some kind of packing and transferring the whole
+packs would be a much better way to go.
+
+Technical details of the synchronization process are documented inside
+the script.
+
+
+Licensing notice
+----------------
+This software is released under the GPL License, version 2.
