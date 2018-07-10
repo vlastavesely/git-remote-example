@@ -55,7 +55,7 @@ list()
 		cat "$1/refs/tags/$branch" | head -c 40
 		echo " refs/tags/$branch"
 	done
-	echo "@refs/heads/master HEAD"
+	test -f "$1/refs/heads/master" && echo "@refs/heads/master HEAD"
 	echo
 }
 
@@ -71,7 +71,7 @@ push_object()
 
 	test -f "$dest" && return 0
 
-	echo "\033[32m * PUSHING $1 [$type]\033[0m" >&2
+	echo "\033[32mPUSHING $1 [$type]\033[0m" >&2
 
 	{ printf "$header\000"; git cat-file $type $1; } | deflate >"$dest"
 }
@@ -81,12 +81,14 @@ push_object()
 # Argument 3: path to the remote repository
 push()
 {
-	remote_sha=$(get_ref_remote $1 $3)
-	local_sha=$(get_ref_local $2)
+	local_sha=$(get_ref_local $1)
+	remote_sha=$(get_ref_remote $2 $3)
 
 	test -n "$remote_sha" && ref="$remote_sha..$local_sha" || ref="$local_sha"
 
-	echo "\e[35mLISTING: git rev-list --objects $ref\e[0m" >&2
+	echo "\e[35mLOCAL:  $1 = $local_sha" >&2
+	echo "\e[35mREMOTE: $2 = $remote_sha" >&2
+	echo "LISTING: git rev-list --objects $ref\e[0m" >&2
 
 	git rev-list --objects $ref | while read object
 	do
@@ -175,7 +177,7 @@ fetch_object()
 	test "$type" = "comm" && type=commit
 	test "$type" = "tag " && type=tag
 
-	echo "\033[32m * FETCHING $2 [$type]\033[0m" >&2
+	echo "\033[32mFETCHING $2 [$type]\033[0m" >&2
 
 	mkdir -p $(dirname "$dest")
 	cp "$1/obj/$2" "$dest"
@@ -196,9 +198,11 @@ fetch()
 url=$(git remote get-url $1)
 remote=$(echo "$url" | tail -c+11)
 
+echo "\033[34mStarted helper for '$url'...\033[0m" >&2
+
 while read cmd
 do
-	test -n "$cmd" && echo "\033[31mRunning '$cmd'...\033[0m" >&2
+	test -n "$cmd" && echo "\033[34mRunning '$cmd'...\033[0m" >&2
 
 	case "$cmd" in
 	capabilities)
@@ -208,7 +212,14 @@ do
 		;;
 	list|list\ for-push)
 		list "$remote"
-		{ echo "\033[36m"; list "$remote"; echo "\033[0m"; } >&2
+
+		# Debug
+		echo "\033[36m" >&2
+		echo "The helper said:" >&2
+		echo "-----------------------------------------------------" >&2
+		list $remote >&2
+		echo "-----------------------------------------------------" >&2
+		echo "\033[0m" >&2
 		;;
 	push\ *)
 		while true
@@ -234,6 +245,7 @@ do
 		done
 		;;
 	'')
+		echo "\033[34mDone\033[0m" >&2
 		exit 0
 		;;
 	esac
