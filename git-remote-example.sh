@@ -81,6 +81,9 @@ inflate()
 # Argument 1: path to the remote repository
 list()
 {
+	test -d $1/refs/heads || mkdir -p $1/refs/heads
+	test -d $1/refs/tags || mkdir -p $1/refs/tags
+
 	find $1/refs/heads $1/refs/tags -type f 2>/dev/null | while read ref
 	do
 		cat $ref | head -c 40; echo -n " "
@@ -229,12 +232,13 @@ list_objects()
 # Looks for the tag objects attached to any of the commits listed in the
 # first argument.
 #
-# Argument 1: list of SHA1s
+# Argument 1: path to the remote repository
+# Argument 2: list of SHA1s
 resolve_tags()
 {
 	objects="$2"
 
-	for tag in $1/refs/tags/*
+	find $1/refs/tags/ -type f | while read tag
 	do
 		match=$(cat $1/obj/$(cat $tag) | inflate | grep --binary-files=text -E 'object [a-f0-9]{40}' | cat)
 		sha=$(echo $match | tail -c 41)
@@ -324,6 +328,7 @@ do
 			arg=$(echo $cmd | tail -c +5)
 			src=$(echo "$arg" | cut -d':' -f1 | xargs) # local
 			dst=$(echo "$arg" | cut -d':' -f2 | xargs) # remote
+			test x$(echo $src | head -c 1) = x+ && src=$(echo "$src" | tail -c +2)
 			push "$src" "$dst" "$remote"
 
 			read cmd
