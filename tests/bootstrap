@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+
+PRIMARY=/tmp/repo-primary
+SECONDARY=/tmp/repo-secondary
+REMOTE=/tmp/repo-remote
+
+rm -rf $PRIMARY $SECONDARY $REMOTE
+mkdir -p $PRIMARY $SECONDARY $REMOTE
