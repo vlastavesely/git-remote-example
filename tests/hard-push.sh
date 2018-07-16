@@ -3,7 +3,7 @@ set -e
 
 testsdir="$(dirname "$(readlink -f $0)")"
 
-. $testsdir/bootstrap
+. "$testsdir/bootstrap"
 
 
 # Create initial repository
