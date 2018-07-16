@@ -198,10 +198,14 @@ list_objects()
 	case "$type" in
 	comm)
 		echo "$sha"
-		parent=$(echo "$content" | grep -E "parent [0-9a-f]{40}" | tail -c 41)
+		parents=$(echo "$content" | grep -E "parent [0-9a-f]{40}")
 		tree=$(echo "$content" | grep -E "tree [0-9a-f]{40}" | tail -c 41)
 		test -n "$tree" && list_objects "$remote" "$tree"
-		test -n "$parent" && list_objects "$remote" "$parent"
+		echo "$parents" | while read parent
+		do
+			parent=$(echo "$parent" | tail -c 41)
+			test -n "$parent" && list_objects "$remote" "$parent"
+		done
 		;;
 	tree)
 		echo "$sha"
