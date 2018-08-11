@@ -198,9 +198,12 @@ list_objects()
 	case "$type" in
 	comm)
 		echo "$sha"
-		parents=$(echo "$content" | grep -E "parent [0-9a-f]{40}")
+		# Every commit does contain one tree
 		tree=$(echo "$content" | grep -E "tree [0-9a-f]{40}" | tail -c 41)
 		test -n "$tree" && list_objects "$remote" "$tree"
+
+		# And one, none (initial commit), or two (merge commit) parent commits
+		parents=$(echo "$content" | grep -E "parent [0-9a-f]{40}")
 		echo "$parents" | while read parent
 		do
 			parent=$(echo "$parent" | tail -c 41)
