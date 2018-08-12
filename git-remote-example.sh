@@ -9,6 +9,35 @@
 # by the Free Software Foundation.
 #
 
+# What is this?
+# -------------
+# This script implements an example Git remote helper with `push` and `fetch` 
+# capabilities working on the local file system.
+#
+# ------------------------------------------------------------------------------
+# WARNING: it is not a good idea to test this script on a repository that
+# matters to you. This script is just a quick hack for a demonstration purpose
+# that may accidentally break something. Some common scenarios were tested
+# with the script and it seems to work well but always make a copy of your
+# repository before trying this script!
+# ------------------------------------------------------------------------------
+#
+# Setup
+# -----
+# The first step to get it working is to install this script as a system-wide
+# executable binary. Once this is done, you can set remote on your repository
+# and try to push your files:
+#
+#    $ git remote add origin example:///local/path/to/the/remote
+#    $ git push origin master
+#
+# If nothing went wrong, you should find the `file:///local/path/to/the/remote`
+# created and containing two sub-directories: `obj` and `refs`. The first
+# directory should contain complete database of commits, trees and blobs, each
+# in a separate file. The second directory should contain refs of branches
+# and/or tags you have pushed.
+
+
 
 # ==============================================================================
 # REF ACCESSORS HELPERS
