@@ -40,6 +40,14 @@ class LocalRepository:
 							  stdout=subprocess.PIPE) as p:
 			p.communicate(input=content)
 
+	def has_object(self, sha: str):
+		try:
+			cmd = ['git', 'cat-file', '-e', sha]
+			out = subprocess.check_output(cmd)
+			return True
+		except:
+			return False
+
 	def get_ref(self, name: str) -> str:
 		cmd = ['git', 'show-ref', name]
 		sha = subprocess.check_output(cmd).decode()[0:40]

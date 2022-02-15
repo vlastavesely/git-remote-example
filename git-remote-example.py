@@ -26,6 +26,12 @@ class Helper:
 		local_repo = self.local_repo
 		remote_repo = self.remote_repo
 
+		if not src:
+			# TODO really remove unecessary objects if possible...
+			remote_repo.set_ref(dst, None)
+			print('ok ' + dst)
+			return 0
+
 		exclude = None
 		if not force:
 			refs = self.remote_repo.get_refs()
@@ -55,21 +61,24 @@ class Helper:
 		local_repo = self.local_repo
 		remote_repo = self.remote_repo
 
-		shas = remote_repo.walk(sha, None) # FIXME
+		shas = remote_repo.walk(sha)
 
 		for sha in shas:
 			data = remote_repo.get_object_data(sha)
 			local_repo.put_object_data(sha, data)
-			DEBUG(sha)
 
 		return 0
 
 	def run(self, url: str) -> int:
+		path = url[10:] # ‘example://tmp/foo’ -> ‘/tmp/foo’
 		self.url = url
-		self.path = url[10:] # ‘example://tmp/foo’ -> ‘/tmp/foo’
+		self.path = path
 
-		self.local_repo = git_example.LocalRepository()
-		self.remote_repo = git_example.RemoteRepository(self.path)
+		local_repo = git_example.LocalRepository()
+		remote_repo = git_example.RemoteRepository(path, local_repo)
+
+		self.local_repo = local_repo
+		self.remote_repo = remote_repo
 
 		last_cmd = ''
 
@@ -103,7 +112,7 @@ class Helper:
 			elif args[0] == 'push':
 				[src, dst] = args[1].split(':')
 
-				force = src[0] == '+'
+				force = len(src) and src[0] == '+'
 				if force:
 					src = src[1:]
 

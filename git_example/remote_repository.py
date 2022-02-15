@@ -7,20 +7,21 @@ import os
 import subprocess
 
 from .object import *
+from .local_repository import *
 
 class RemoteRepository:
 
-	def __init__(self, path: str):
+	def __init__(self, path: str, local: LocalRepository):
 		self.path = path
+		self.local = local
 
-	def walk(self, want: str, have: str) -> list:
+	def walk(self, want: str) -> list:
 		obj = self.load_object(want)
-		deps = obj.get_deps()
-		ret = [want] + deps
+		ret = [want]
 
-		for dep in deps:
-			if dep != have:
-					ret += self.walk(dep, have)
+		for dep in obj.get_deps():
+			if not self.local.has_object(dep):
+				ret += self.walk(dep)
 
 		return ret
 
@@ -60,7 +61,10 @@ class RemoteRepository:
 
 	def set_ref(self, name, sha):
 		refs = self.get_refs()
-		refs[name] = sha
+		if sha:
+			refs[name] = sha
+		else:
+			del refs[name]
 
 		with open(self.path + '/refs', 'w') as fd:
 			json.dump(refs, fd)
