@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 # vim:set ts=4
 
+import git_example
 import sys
 
 class Helper:
@@ -10,17 +11,65 @@ class Helper:
 		return '\n'.join(['push', 'fetch']) + '\n'
 
 	def list(self) -> str:
-		return ''
+		refs = self.remote_repo.get_refs()
+		ret = ''
+		for ref in refs.keys():
+			ret += refs[ref] + ' ' + ref + '\n'
+
+		# FIXME
+		if 'refs/heads/master' in refs.keys():
+			ret += '@refs/heads/master HEAD\n'
+
+		return ret
 
 	def push(self, src: str, dst: str, force: bool=False) -> int:
+		local_repo = self.local_repo
+		remote_repo = self.remote_repo
+
+		exclude = None
+		if not force:
+			refs = self.remote_repo.get_refs()
+			if dst in refs:
+				exclude = '^' + refs[dst]
+
+		shas = local_repo.walk(src, exclude)
+		pushed_objects = 0
+
+		for sha in shas:
+			data = local_repo.get_object_data(sha)
+			remote_repo.put_object_data(sha, data)
+			pushed_objects += 1
+
+		sha = local_repo.get_ref(src)
+
+		refs = remote_repo.get_refs()
+		new_branch = not dst in refs
+		remote_repo.set_ref(dst, sha)
+
+		if pushed_objects or new_branch:
+			print('ok ' + dst) # XXX or ‘error’ on a failure
+
 		return 0
 
 	def fetch(self, sha: str, name: str) -> int:
+		local_repo = self.local_repo
+		remote_repo = self.remote_repo
+
+		shas = remote_repo.walk(sha, None) # FIXME
+
+		for sha in shas:
+			data = remote_repo.get_object_data(sha)
+			local_repo.put_object_data(sha, data)
+			DEBUG(sha)
+
 		return 0
 
 	def run(self, url: str) -> int:
 		self.url = url
 		self.path = url[10:] # ‘example://tmp/foo’ -> ‘/tmp/foo’
+
+		self.local_repo = git_example.LocalRepository()
+		self.remote_repo = git_example.RemoteRepository(self.path)
 
 		last_cmd = ''
 
@@ -86,7 +135,7 @@ if __name__ == '__main__':
 	remote = sys.argv[1]
 	if len(sys.argv) == 2:
 		# TODO - Possibly load the URL from the Git configuration...
-		raise AttributeError('No URL given.')
+		raise ValueError('No URL given.')
 
 	url = sys.argv[2]
 
