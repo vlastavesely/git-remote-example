@@ -8,3 +8,6 @@ install:
 
 uninstall:
 	rm -f /usr/bin/git-remote-example
+
+clean:
+	rm -rf git_example/__pycache__
