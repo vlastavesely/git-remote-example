@@ -1,27 +1,50 @@
-Example Git Remote Helper
-=========================
-This is an example `Git remote helper` implementing the `push` and `fetch`
-capabilities.
+An Example Git Remote Helper
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This project is an example Git remote helper implementing the ‘push’ and
+‘fetch’ capabilities and thus providing full bidirectional synchronisation
+between a local repository and a remote server. For the purpose of clarity,
+a local directory is used as the remote storage so it is easier to debug and
+understand how the process works.
 
+
+Performance and Limitations
+---------------------------
+This script is a result of my own studying the subject. The purpose of this
+helper is merely to demonstrate how synchronisation between a local repository
+and a remote server works. It really does not make any sense to use it as
+a stable tool to share your repositories with others as it may possibly lack
+some edge features and, therefore, break integrity of the transferred data.
+
+The program has some performance-related limitations. As already mentioned,
+it uses a local directory as the ‘remote’ storage and transfers the objects
+one by one. However, this approach would be an overkill when transferring data
+over the Internet. In that case, it would be a good idea to utilise Git
+Packfiles to pack and transfer the data (if the parameters of the remote
+storage allow such an approach).
+
+
+Documentation
+-------------
 As a basic introduction to the idea of Git remote helpers, the official
 documentation [https://git-scm.com/docs/git-remote-helpers] can be useful.
-However, in order to program a working helper, one must have a deeper
-understanding of Git's internals since the documentation omits many details.
-Actual implementations of remote helpers, that can be found over the
-Internet, are often built for various cloud services so gaining a basic
-idea how to implement a new helper is kind of difficult.
+However, the documentation concerns only the details of the interface
+for communication between the helper and Git itself but it does not give
+a detailed explanation of the synchronisation processes. Therefore, it
+is required to gain a deeper understanding of the format of the Git object
+database and of Git objects themselves.
 
-This script is a result of my own painful studying the subject. It implements
-a "remote" storage in another directory on the local file system. For purpose
-of study, it simply transfers all the objects file by file. However, this
-approach would be an overkill when transferring data over the Internet.
-In such cases, implementing some kind of packing and transferring the whole
-packs would be a much better way to go.
-
-Technical details of the synchronization process are documented inside
+Technical details of the synchronisation process are documented inside
 the script.
 
 
-Licensing notice
+Licensing Notice
 ----------------
-This software is released under the GPL License, version 2.
+This software is released under the terms of the GPL license version 2 as
+published by the Free Software Foundation. You can freely redistribute and/or
+modify the software under the terms of the license.
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+For more information on details of the license, see the file COPYING.
