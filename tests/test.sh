@@ -10,6 +10,10 @@ run_test() {
 	echo >&2
 }
 
+# Uncomment to get more information about synchronisation
+# export GIT_EXAMPLE_VERBOSE=1
+
+
 # Clone and fetch ‘master’
 run_test clone.sh
 
@@ -21,3 +25,6 @@ run_test hard-push.sh
 
 # Merged branches
 run_test merge.sh
+
+# Removal of remote references
+run_test remove-refs.sh
