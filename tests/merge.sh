@@ -1,17 +1,12 @@
 #!/bin/sh
 set -e
 
-testsdir="$(dirname "$(readlink -f $0)")"
+testsdir=$(dirname "$(readlink -f $0)")
 
-. "$testsdir/bootstrap"
+. $testsdir/functions.sh
 
 
-# Create initial repository
-git -C $PRIMARY init >/dev/null
-git -C $PRIMARY remote add origin example://$REMOTE
-echo "/test" >$PRIMARY/.gitignore
-git -C $PRIMARY add .gitignore >/dev/null
-git -C $PRIMARY commit -m "initial" >/dev/null
+initialise_git_repo
 
 git -C $PRIMARY checkout -b second
 echo "second" >$PRIMARY/second
@@ -19,12 +14,19 @@ git -C $PRIMARY add second
 git -C $PRIMARY commit -m "second"
 
 git -C $PRIMARY checkout master
-echo "GPL-2" >$PRIMARY/COPYING
-git -C $PRIMARY add COPYING >/dev/null
-git -C $PRIMARY commit -m "add COPYING" >/dev/null
-git -C $PRIMARY tag v1.0 -a -m "released v1.0"
+echo "file" >$PRIMARY/file
+git -C $PRIMARY add file >/dev/null
+git -C $PRIMARY commit -m "add file" >/dev/null
 
 git -C $PRIMARY merge second -m "merge branch second"
 
-git -C $PRIMARY push origin master
-git -C $SECONDARY clone example://$REMOTE .
+
+message "Pushing to remote ..."
+GIT_ALLOW_UNSIGNED=y git -C $PRIMARY push origin master --tags
+
+
+message "Fetching from remote ..."
+git clone example://$REMOTE $SECONDARY
+test_ref_same $PRIMARY $SECONDARY HEAD
+test_ref_same $PRIMARY $SECONDARY HEAD~1
+test_ref_same $PRIMARY $SECONDARY HEAD~2

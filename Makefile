@@ -6,7 +6,7 @@ pythondistdir = $(libdir)/python3/dist-packages
 .PHONY: test install uninstall
 
 test:
-	sh tests/run.sh
+	sh tests/test.sh
 
 install:
 	install -m 0755 -d $(bindir) $(pythondistdir)/git_example
