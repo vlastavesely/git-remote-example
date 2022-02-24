@@ -1,37 +1,102 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-2.0-only
-# vim:set ts=4
+# vim: set ts=4:
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License version 2 as published
+# by the Free Software Foundation.
+#
+#
+# What Does This Script do?
+# ~~~~~~~~~~~~~~~~~~~~~~~~~
+# This script is an implementation of Git remote helper with ‘push’ and ‘fetch’
+# capabilities working on the local file system. The purpose of the script is
+# to demonstrate how a Git remote helper can be made.
+#
+# ******************************************************************************
+# WARNING: it is not a good idea to test this script on a repository that
+# matters to you. This script was made just for demonstration purposes and
+# it may accidentally break something. Some common scenarios were tested
+# with the test scripts and it seems to work well. But you should never
+# forget to make a backup copy of your repository before trying this script!
+# ******************************************************************************
 
 import git_example
 import sys
+import os
 
 class Helper:
 
 	def capabilities(self) -> str:
+		"""
+		Gets a list of capabilities implemented in the helper. For a dumb
+		storage, the commands ‘push’ and ‘fetch’ can provide pretty much all
+		functionality needed. If the storage can work with the Git Packfiles,
+		the command ‘connect’ seems to be a better choice (this was not tested
+		and is not the subject of this project).
+		"""
 		return '\n'.join(['push', 'fetch']) + '\n'
 
 	def list(self) -> str:
+		"""
+		Gets a list of the refs in the remote repository. Expected output:
+		----------------------------------------------------------
+		b88f36d7a73ccf94174eb2efab86402fa425cd64 refs/heads/master
+		7f65b4065ecd25aea34f374ec82bb4db279998d6 refs/heads/branch
+		@refs/heads/master HEAD
+		<newline>
+		----------------------------------------------------------
+		"""
 		refs = self.remote_repo.get_refs()
 		ret = ''
 		for ref in refs.keys():
 			ret += refs[ref] + ' ' + ref + '\n'
 
-		# FIXME
+		# FIXME: the main branch may not be ‘master’.
+		# if no HEAD is given, checkout after clone fails.
 		if 'refs/heads/master' in refs.keys():
 			ret += '@refs/heads/master HEAD\n'
 
 		return ret
 
 	def push(self, src: str, dst: str, force: bool=False) -> int:
+		"""
+		Pushes the local reference ‘src’ into the remote reference ‘dst’.
+
+		It is the helper’s responsibility to resolve a list of all objects
+		that are missing in the remote and transfer them. The first thing we
+		need to do, is to translate the reference names to the corresponding
+		SHA1 hashes:
+
+		  <want> := ref_to_sha1(<src>);
+		  <have> := ref_to_sha1(<dst>);
+
+		Then we need to traverse over each of the parent commits of
+		the ‘<want>’ commit up to the ‘<have>’ commit (which is the last one
+		that is already present in the remote). Each of those commits must be
+		parsed and its tree (and the trees and blobs on which it depends)
+		included in the list.
+
+		When it makes sense, command ‘git rev-list --objects <want> ^<have>’
+		can be used to do the work for us. (In this case, you can use the
+		reference name directly for the ‘<want>’ commit.)
+
+		See the file ‘git_example/local_repository.py’ for more details.
+		"""
 		local_repo = self.local_repo
 		remote_repo = self.remote_repo
 
 		if not src:
-			# TODO really remove unecessary objects if possible...
+			# Setting the destination to an empty reference means removal
+			# of the reference.
+			#
+			# TODO: possibly trigger a cleanup in the remote storage
+			# and remove objects that are no longer needed.
 			remote_repo.set_ref(dst, None)
 			print('ok ' + dst)
 			return 0
 
+		# We can exclude commits we already have...
 		exclude = None
 		if not force:
 			refs = self.remote_repo.get_refs()
@@ -46,6 +111,11 @@ class Helper:
 			remote_repo.put_object_data(sha, data)
 			pushed_objects += 1
 
+		# FIXME: If something breaks, you can report error and fail:
+		# if failure:
+		#	print('error ' + dst)
+		#	return -1
+
 		sha = local_repo.get_ref(src)
 
 		refs = remote_repo.get_refs()
@@ -53,11 +123,23 @@ class Helper:
 		remote_repo.set_ref(dst, sha)
 
 		if pushed_objects or new_branch:
-			print('ok ' + dst) # XXX or ‘error’ on a failure
+			print('ok ' + dst)
 
 		return 0
 
 	def fetch(self, sha: str, name: str) -> int:
+		"""
+		Fetches objects from the remote repository. This process is reverse
+		to pushing but the logic behind the process is the same.
+
+		Depending on the structure of the remote repository and parameters
+		of the storage, it may not be possible to use Git itself to resolve
+		the list of object to be transferred. This project uses a custom
+		format of the remote storage and therefore it must resolve the list
+		on its own.
+
+		See the file ‘git_example/remote_repository.py’ for more details.
+		"""
 		local_repo = self.local_repo
 		remote_repo = self.remote_repo
 
@@ -70,6 +152,12 @@ class Helper:
 		return 0
 
 	def run(self, url: str) -> int:
+		"""
+		This is the main entry point. Basically, it just reads a list
+		of commands from the standard input and writes responses to the
+		standard output. Errors may be written to the standard error file
+		and will be shown in the user's console.
+		"""
 		path = url[10:] # ‘example://tmp/foo’ -> ‘/tmp/foo’
 		self.url = url
 		self.path = path
@@ -131,8 +219,8 @@ class Helper:
 
 
 def DEBUG(*args, **kwargs):
-	print(*args, file=sys.stderr, **kwargs)
-
+	if os.getenv('GIT_EXAMPLE_VERBOSE'):
+		print(*args, file=sys.stderr, **kwargs)
 
 def error(*args, **kwargs):
 	print(*args, file=sys.stderr, **kwargs)

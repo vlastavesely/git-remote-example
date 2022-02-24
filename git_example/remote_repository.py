@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-2.0-only
-# vim: ts=4
+# vim: set ts=4:
 
 import json
 import os

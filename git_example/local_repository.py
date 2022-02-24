@@ -1,12 +1,18 @@
 #!/usr/bin/python3
 # SPDX-License-Identifier: GPL-2.0-only
-# vim: ts=4
+# vim: set ts=4:
 
 import subprocess
 
 from .object import *
 
 class LocalRepository:
+	"""
+	Representation of a local repository. As the local repository is just
+	a standard Git repository, we can use the Git command itself to facilitate
+	retrieval of the objects instead of implementing all functionality on our
+	own.
+	"""
 
 	def walk(self, want: str, have: str) -> list:
 		cmd = ['git', 'rev-list', '--objects', want]
